@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 //set database
 const database = require("./database/index.js");
 
-const BookModels = require("./database/book");
+const BookModel = require("./database/book");
 const AuthorModel = require("./database/author");
 const PublicationModel = require("./database/publication");
 
@@ -31,8 +31,10 @@ access          public
 parameter       non
 method          GET
  */
-bookie.get("/", (req, res) => {
-    return res.json({ books: database.books });
+bookie.get("/", async(req, res) => {
+    const getAllBooks = await BookModel.find();
+    //console.log(getAllBooks);    
+    return res.json({ getAllBooks });
 });
 /*
 router          /is
@@ -41,40 +43,50 @@ access          public
 parameter       isbm
 method          GET
  */
-bookie.get("/is/:isbm", (req, res) => {
-        const getSpecificBook = database.books.filter((book) => book.ISBN === req.params.isbm);
-        if (getSpecificBook.length == 0) {
-            return res.json({ error: `NO book found for this ISBM of ${req.params.isbm}` })
-        }
-        return res.json({ book: getSpecificBook });
-    })
-    /*
-    router          /category or /c
-    description     get specific books based on a category
-    access          public
-    parameter       category
-    method          GET
-     */
-bookie.get("/c/:category", (req, res) => {
-    const getSpecificBook = database.books.filter((book) => book.category.includes(req.params.category));
-    if (getSpecificBook.length == 0) {
-        return res.json({ error: `NO book found for this category of ${req.params.category}, try another one` })
+bookie.get("/is/:isbm", async(req, res) => {
+    const getSpecificBook = await BookModel.findOne({ ISBN: req.params.isbm });
+    //null
+
+    if (!getSpecificBook) {
+        return res.json({ error: `NO book found for this ISBM of ${req.params.isbm}` })
     }
     return res.json({ book: getSpecificBook });
 });
 /*
-router          /a
-description     get specific books based on a author ID
+router          /category or /c
+description     get list of books based on a category
 access          public
 parameter       category
 method          GET
  */
-bookie.get("/a/:author", (req, res) => {
-    const getSpecificBook = database.books.filter((book) => book.authors.includes(parseInt(req.params.author)));
-    if (getSpecificBook.length == 0) {
+bookie.get("/c/:category", async(req, res) => {
+    const getSpecificCategory = await BookModel.find({ category: req.params.category })
+    if (!getSpecificCategory) {
+        return res.json({ error: `NO book found for this category of ${req.params.category}, try another one` })
+    }
+    return res.json({ Catergory: getSpecificCategory });
+    //const getSpecificBook = database.books.filter((book) => book.category.includes(req.params.category));
+    //if (getSpecificBook.length == 0) {
+    //    return res.json({ error: `NO book found for this category of ${req.params.category}, try another one` })
+    //}
+    //return res.json({ book: getSpecificBook });
+});
+/*
+router          /a
+description     get list of of  books based on a author ID
+access          public
+parameter       category
+method          GET
+ */
+bookie.get("/a/:author", async(req, res) => {
+    const getSpecificAuther = await BookModel.find({ authors: req.params.author });
+    //null
+
+    if (!getSpecificAuther) {
         return res.json({ error: `NO book found for this auther ID of ${req.params.author}, try another one` })
     }
-    return res.json({ book: getSpecificBook });
+    return res.json({ getSpecificAuther });
+
 });
 /*
 router          /authors
@@ -84,7 +96,8 @@ parameter       none
 method          GET
 */
 bookie.get("/authors", (req, res) => {
-    return res.json({ authors: database.authors });
+    const getAllAuther = AuthorModel.find();
+    return res.json({ getAllAuther });
 });
 /*
 router          /author/id
@@ -93,13 +106,14 @@ access          public
 parameter       author
 method          GET
 */
-bookie.get("/author/id/:id", (req, res) => {
-    const getSpecificAuther = database.authors.filter((author) => author.id === parseInt(req.params.id));
-    if (getSpecificAuther.length == 0) {
+bookie.get("/author/id/:id", async(req, res) => {
+    const getSpecificAuther = await AuthorModel.findOne({
+        id: req.params.id
+    });
+    if (!getSpecificAuther) {
         return res.json({ error: `NO Auther found for this id of ${req.params.id}, try another one` })
     }
-    return res.json({ author: getSpecificAuther })
-
+    return res.json({ getSpecificAuther });
 });
 /*
 router          /author
@@ -108,13 +122,12 @@ access          public
 parameter       isbm
 method          GET
 */
-bookie.get("/author/:isbm", (req, res) => {
-    const getSpecificAuther = database.authors.filter((author) => author.book.includes(req.params.isbm));
-    if (getSpecificAuther.length == 0) {
-        return res.json({ error: `NO Auther found for this BOOK of ${req.params.id}, try another one` })
+bookie.get("/author/:isbm", async(req, res) => {
+    const getSpecificAuther = await AuthorModel.find({ book: req.params.isbm })
+    if (!getSpecificAuther) {
+        return res.json({ error: `NO Auther found for this Book of ${req.params.isbm}, try another one` })
     }
-    return res.json({ author: getSpecificAuther })
-
+    return res.json({ getSpecificAuther });
 });
 /*
 router          /publications
@@ -134,13 +147,12 @@ access          public
 parameter       isbm
 method          GET
 */
-bookie.get("/publication/:isbm", (req, res) => {
-    const getSpecificPublication = database.publications.filter((pub) => pub.books.includes(req.params.isbm));
-    if (getSpecificPublication.length == 0) {
+bookie.get("/publication/:isbm", async(req, res) => {
+    const getSpecificPublication = await PublicationModel.find({ books: req.params.isbm })
+    if (!getSpecificPublication) {
         return res.json({ error: `NO Publication found for this BOOK of ${req.params.isbm}, try another one` })
     }
-    return res.json({ author: getSpecificPublication })
-
+    return res.json({ getSpecificPublication })
 });
 /*
 router          /book/new
@@ -150,10 +162,10 @@ parameter       non
 method          POST
 */
 
-bookie.post("/book/new", (req, res) => {
-    const { newbook } = req.body;
-    database.books.push(newbook);
-    return res.json({ books: database.books, message: "book was added" })
+bookie.post("/book/new", async(req, res) => {
+    const { newBook } = req.body;
+    const addNewBook = BookModel.create(newBook);
+    return res.json({ message: "book was added" })
 });
 /*
 Route           /author/new
@@ -162,10 +174,10 @@ Access          PUBLIC
 Parameters      NONE
 Method          POST
 */
-bookie.post("/author/new", (req, res) => {
-    const { newauthor } = req.body;
-    database.authors.push(newauthor);
-    return res.json({ authors: database.authors, message: "auther was added" })
+bookie.post("/author/new", async(req, res) => {
+    const { newAuthor } = req.body;
+    const addNewAuthor = AuthorModel.create(newAuthor);
+    return res.json({ message: "auther was added" })
 });
 /*
 Route           /publication/new
@@ -175,10 +187,12 @@ Parameters      NONE
 Method          POST
 */
 bookie.post("/publication/new", (req, res) => {
-    const { newpublication } = req.body;
-    database.publications.push(newpublication);
-    return res.json({ publications: database.publications, message: "publication was added" })
+    const { newPublication } = req.body;
+    const addNewPublication = PublicationModel.create(newPublication);
+    return res.json({ message: "publication was added" })
+
 });
+/***************************************************************************************/
 /*
 router          /book/update
 description    update book detail
@@ -186,6 +200,7 @@ access          public
 parameter       isbn
 method          PUT
 */
+
 bookie.put("/book/update/:isbn", (req, res) => {
     database.books.forEach((book) => {
         if (book.ISBN === req.params.isbn) {
