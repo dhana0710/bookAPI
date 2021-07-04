@@ -335,33 +335,33 @@ Access          PUBLIC
 Parameters      isbn, author id
 Method          DELETE
 */
-bookie.delete("/book/delete/author/:isbn/:authorId", (req, res) => {
+bookie.delete("/book/delete/author/:isbn/:authorId", async(req, res) => {
     //update the book database
-    database.books.forEach((book) => {
-        if (book.ISBN === req.params.isbn) {
-            const newAuthorList = book.authors.filter(
-                (author) => author !== parseInt(req.params.authorId)
-            );
-            book.authors = newAuthorList;
-            return;
+    const deleteAuthor = await BookModel.findOneAndUpdate({
+        ISBN: req.params.isbn
+    }, {
+        $pull: {
+            authors: parseInt(req.params.authorId),
         }
+    }, {
+        new: true,
     });
-    // update the author database
-    database.authors.forEach((author) => {
-        if (author.id === parseInt(req.params.authorId)) {
-            const newBooksList = author.book.filter(
-                (book) => book !== req.params.isbn
-            );
 
-            author.books = newBooksList;
-            return;
+    // update the author database
+    const deleteAutherBook = await AuthorModel.findOneAndUpdate({
+        id: parseInt(req.params.authorId)
+    }, {
+        $pull: {
+            book: req.params.isbn,
         }
+    }, {
+        new: true,
     });
 
     return res.json({
         message: "author was deleted!!!!!!😪",
-        book: database.books,
-        author: database.authors,
+        //book: deleteAuthor,
+        //author: deleteAutherBook,
     });
 
 
@@ -373,32 +373,29 @@ Access          PUBLIC
 Parameters      isbn, publication id
 Method          DELETE
 */
-bookie.delete("/publication/delete/book/:isbn/:pubId", (req, res) => {
-    // update publication database
-    database.publications.forEach((publication) => {
-        if (publication.id === parseInt(req.params.pubId)) {
-            const newBooksList = publication.books.filter(
-                (book) => book !== req.params.isbn
-            );
-
-            publication.books = newBooksList;
-            return;
+bookie.delete("/publication/delete/book/:isbn/:pubId", async(req, res) => {
+    // update the publication database
+    const deleteBookpublication = await PublicationModel.findOneAndUpdate({
+        id: parseInt(req.params.pubId)
+    }, {
+        $pull: {
+            books: req.params.isbn,
         }
+    }, {
+        new: true,
     });
-
-    // update book database
-    database.books.forEach((book) => {
-        if (book.ISBN === req.params.isbn) {
-            book.publication = 0; // no publication available
-            return;
-        }
+    //update the book database
+    const deleteBookPublication = await BookModel.findOneAndUpdate({
+        ISBN: req.params.isbn
+    }, {
+        publication: 0
+    }, {
+        new: true,
     });
-
-    return res.json({
-        books: database.books,
-        publications: database.publications,
-    });
+    return res.json({ message: "Done" });
 });
+
+
 /*
 Route           /author/delete
 Description     delete a author
@@ -407,11 +404,10 @@ Parameters      id
 Method          DELETE
 */
 bookie.delete("/author/delete/:id", (req, res) => {
-    const updateAuthorDatabase = database.authors.filter(
-        (author) => author.id !== parseInt(req.params.id)
-    );
-    database.authors = updateAuthorDatabase;
-    return res.json({ authors: database.authors })
+    const deleteAuthor = await AuthorModel.deleteOne({
+        id: req.params.id,
+    })
+    return res.json({ message: "deleted" });
 });
 /*
 Route           /publication/delete
@@ -421,11 +417,10 @@ Parameters      id
 Method          DELETE
 */
 bookie.delete("/publication/delete/:id", (req, res) => {
-    const updatePublicationDatabase = database.publications.filter(
-        (publication) => publication.id !== parseInt(req.params.id)
-    );
-    database.publications = updatePublicationDatabase;
-    return res.json({ publications: database.publications })
+    const publicationBook = await PublicationModel.deleteOne({
+        id: req.params.id,
+    })
+    return res.json({ message: "deleted" });
 });
 
 
