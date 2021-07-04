@@ -245,19 +245,21 @@ bookie.put("/book/author/update/:isbn", async(req, res) => {
 });
 /*
 router          /author/update
-description    update author detail
+description    update author name
 access          public
 parameter       id
 method          PUT
 */
-bookie.put("/author/update/:id", (req, res) => {
-    database.authors.forEach((author) => {
-        if (author.id === parseInt(req.params.id)) {
-            author.name = req.body.authorName;
-            return;
-        }
+bookie.put("/author/update/:id", async(req, res) => {
+    const updateAuthor = await AuthorModel.findOneAndUpdate({
+        id: parseInt(req.params.id),
+    }, {
+        name: req.body.authorName,
+    }, {
+        new: true,
     });
-    return res.json({ authors: database.authors, message: "update author detail(name)" });
+
+    return res.json({ authors: updateAuthor, message: "update author detail(name)" });
 });
 /*
 router          /publication/update
@@ -266,14 +268,18 @@ access          public
 parameter       id
 method          PUT
 */
-bookie.put("/publication/update/:id", (req, res) => {
-    database.publications.forEach((pub) => {
-        if (pub.id === parseInt(req.params.id)) {
-            pub.name = req.body.publicationName;
-            return;
-        }
+bookie.put("/publication/update/:id", async(req, res) => {
+    const updatePublication = await PublicationModel.findOneAndUpdate({
+        id: parseInt(req.params.id),
+    }, {
+        name: req.body.publicationName,
+    }, {
+        new: true,
     });
-    return res.json({ publication: database.publications, message: "update publication detail(name)" });
+
+    return res.json({ publication: updatePublication, message: "update publication detail(name)" });
+
+
 });
 /*
 Route           /publication/update/book
@@ -283,23 +289,29 @@ Parameters      isbn
 Method          PUT
 */
 
-bookie.put("/publication/update/book/:isbn", (req, res) => {
+bookie.put("/publication/update/book/:isbn", async(req, res) => {
     //update the publication database
-    database.publications.forEach((publication) => {
-        if (publication.id === req.body.pubId) {
-            return publication.books.push(req.params.isbn);
+    const updatePublication = await PublicationModel.findOneAndUpdate({
+        id: req.body.pubId,
+    }, {
+        $addToSet: {
+            books: req.params.isbn,
         }
+    }, {
+        new: true,
     });
     // update the book database
-    database.books.forEach((book) => {
-        if (book.ISBN === req.params.isbn) {
-            book.publication = req.body.pubId;
-            return;
-        }
+    const updateBook = await BookModel.findOneAndUpdate({
+        ISBN: req.params.isbn,
+    }, {
+        publication: req.body.pubId,
+    }, {
+        new: true,
     });
+
     return res.json({
-        books: database.books,
-        publications: database.publications,
+        books: updateBook,
+        publications: updatePublication,
         message: "Successfully updated publication",
     });
 });
@@ -310,12 +322,11 @@ Access          PUBLIC
 Parameters      isbn
 Method          DELETE
 */
-bookie.delete("/book/delete/:isbn", (req, res) => {
-    const updateBookDatabase = database.books.filter(
-        (book) => book.ISBN !== req.params.isbn
-    );
-    database.books = updateBookDatabase;
-    return res.json({ books: database.books })
+bookie.delete("/book/delete/:isbn", async(req, res) => {
+    const deleteBook = await BookModel.deleteOne({
+        ISBN: req.params.isbn,
+    })
+    return res.json({ message: "deleted" });
 });
 /*
 Route           /book/delete/author
