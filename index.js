@@ -219,20 +219,29 @@ Access          PUBLIC
 Parameters      isbn
 Method          PUT
 */
-bookie.put("/book/author/update/:isbn", (req, res) => {
+bookie.put("/book/author/update/:isbn", async(req, res) => {
     //update the book database
-    database.books.forEach((book) => {
-        if (book.ISBN === req.params.isbn) {
-            return book.authors.push(req.body.newAuthor);
-        }
+    const updatedBook = await BookModel.findOneAndUpdate({
+        ISBN: req.params.isbn,
+    }, {
+        $addToSet: {
+            authors: req.body.newAuthor,
+        },
+    }, {
+        new: true,
     });
     //update the author database
-    database.authors.forEach((author) => {
-        if (author.id === req.body.newAuthor) {
-            return author.book.push(req.params.isbn);
+    const updatedAuthor = await AuthorModel.findOneAndUpdate({
+        id: req.body.newAuthor,
+    }, {
+        $addToSet: {
+            book: req.params.isbn,
         }
-    })
-    return res.json({ books: database.books, authors: database.authors, message: "done" })
+    }, {
+        new: true,
+    });
+
+    return res.json({ books: updatedBook, authors: updatedAuthor, message: "done" })
 });
 /*
 router          /author/update
